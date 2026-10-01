@@ -1,0 +1,49 @@
+name: PS5 Stock Alert
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check-stock:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Altex stock
+        run: |
+          python - <<'PY'
+          import requests
+
+          url = "https://altex.ro/consola-playstation-5-pro-digital-edition-ps5-2tb-white/cpd/CNSPS5PRO2TB/"
+
+          headers = {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36"
+          }
+
+          r = requests.get(url, headers=headers, timeout=30)
+          print("HTTP:", r.status_code)
+
+          text = r.text.lower()
+
+          available = (
+              "în stoc" in text
+              or "in stoc" in text
+              or "adaugă în coș" in text
+              or "adauga in cos" in text
+          )
+
+          print("STOCK:", available)
+
+          if available:
+              bot_token = "${{ secrets.TELEGRAM_BOT_TOKEN }}"
+              chat_id = "${{ secrets.TELEGRAM_CHAT_ID }}"
+
+              msg = "🚨 PS5 PRO ESTE POSIBIL SĂ FI INTRAT ÎN STOC!\nhttps://altex.ro/consola-playstation-5-pro-digital-edition-ps5-2tb-white/cpd/CNSPS5PRO2TB/"
+
+              requests.post(
+                  f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                  data={"chat_id": chat_id, "text": msg},
+                  timeout=15
+              )
+          PY
